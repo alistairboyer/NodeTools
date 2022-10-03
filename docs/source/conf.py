@@ -12,6 +12,7 @@
 #
 import os
 import sys
+import sphinx_rtd_theme
 
 sys.path.insert(0, os.path.abspath("../../../NodeTools"))
 sys.path.insert(0, os.path.abspath("../../../examples"))
@@ -32,7 +33,7 @@ author = "Alistair Boyer"
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ["sphinx.ext.napoleon"]
+extensions = ["sphinx.ext.napoleon", "sphinx_rtd_theme"]
 
 # Google python docstrings
 napoleon_include_special_with_doc = True
