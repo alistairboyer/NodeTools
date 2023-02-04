@@ -1,5 +1,5 @@
 """
-A selection of methods to transfer proprties to and from a bledner object.
+A selection of methods to transfer proprties to and from a blender object.
 
 """
 
@@ -104,7 +104,7 @@ def to_builtin(
     # an error is logged and the object is converted to its str representation
     # with the memory address removed
     _log("# Could not convert to base type:", value)
-    return str(value).replace(" at {}".format(hex(id(value))), "")
+    return repr(value)
 
 
 def to_dict(
