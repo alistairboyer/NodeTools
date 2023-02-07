@@ -42,12 +42,12 @@ def to_builtin(
       are processed according to float as above. Consideration should be
       given to reppresenting these as fractional values of pi where appropriate.
 
-    - `Other`: other values, such as objects, are converted to a string
-      representation using the str() method with the memory reference cleaned.
+    - `Other`: other values, such as objects, are converted to a
+      representation using the repr() method.
 
     Args:
         value (Any) : The value for conversion.
-        float_round (int) : The rounding of float values.
+        float_round (int) : The rounding of float values [default=6].
 
     Returns:
         The value converted to python builtins.
