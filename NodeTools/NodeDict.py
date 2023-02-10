@@ -97,6 +97,11 @@ class NodeTree(Base):
               be returned. If `True` then a new tree will be created.
               [Default `False`]
 
+        Kwargs:
+            socket_info : Iterable of `dict` containing informtaion to create sockets
+            node_info : Iterable of `dict` containing informtaion to create nodes
+            link_info : Iterable of `dict` containing informtaion to create links
+
         Return:
             ``bpy.types.NodeTree``
 
@@ -105,29 +110,27 @@ class NodeTree(Base):
         name: str
         treetype: str
         context: Union[str, bpy.types.bpy_struct]
-        object: Union[bpy.types.NodeTree, bpy.types.bpy_struct]
-        nodetree: bpy.types.NodeTree
+        nodetree_object: Union[bpy.types.NodeTree, bpy.types.bpy_struct]
         tree_parent: bpy.types.bpy_struct
-        socket_info: Iterable[dict]
         socket_data: dict
-        node_info: Iterable[dict]
         node_data: dict
-        link_info: Iterable[dict]
         link_data: dict
         #
         name = d.pop("name")
         treetype = d.pop("TYPE")
         context = d.pop("CONTEXT", None)
-        if context is not None:
-            if type(context) == str:
-                context = eval("bpy.data.{}".format(context.replace("bpy.data.", "")))
+        # Context describes where the node tree will be created.
+        # If is is nonde then it should be in bpy.data.node_groups
+        # Otherwise it should be an e.g. Material node tree
+        if type(context) is str:
+            context = eval("bpy.data.{}".format(context.replace("bpy.data.", "")))
         if context is None or context == bpy.data.node_groups:
-            object = bpy.data.node_groups.get(name, None)
-            if object is None:
-                object = bpy.data.node_groups.new(name, treetype)
+            nodetree_object = bpy.data.node_groups.get(name, None)
+            if nodetree_object is None:
+                nodetree_object = bpy.data.node_groups.new(name, treetype)
             elif not overwrite:
-                return object
-            tree_parent = object
+                return nodetree_object
+            tree_parent = nodetree_object
         else:
             tree_parent = context.get(name, None)
             if tree_parent is None:
@@ -135,16 +138,16 @@ class NodeTree(Base):
             elif not overwrite:
                 return tree_parent
             tree_parent.use_nodes = True
-            object = tree_parent.node_tree
-        object.nodes.clear()
-        cls._autoparent(object)
-        BLPropertiesUtils.update(object, d)
+            nodetree_object = tree_parent.node_tree
+        nodetree_object.nodes.clear()
+        cls._autoparent(nodetree_object)
+        BLPropertiesUtils.update(nodetree_object, d)
         for socket_data in kwargs.pop("socket_info", []):
-            Socket(socket_data, parent=object)
+            Socket(socket_data, parent=nodetree_object)
         for node_data, node_socket_data in kwargs.pop("node_info", []):
-            Node(node_data, parent=object, socket_data=node_socket_data)
-        for link_data in kwargs.pop("socket_info", []):
-            Link(socket_data, parent=object)
+            Node(node_data, parent=nodetree_object, socket_data=node_socket_data)
+        for link_data in kwargs.pop("link_info", []):
+            Link(link_data, parent=nodetree_object)
         return tree_parent
 
     @staticmethod
@@ -165,9 +168,7 @@ class NodeTree(Base):
           or ``bpy.data.node_groups``.
 
         Args:
-            nodetree (``bpy.types.NodeLink``) : object to be converted to `dict`.
-            node_map (dict) : passed to ``to_dict()`` method.
-            socket_map (dict) : passed to ``to_dict()`` method.
+            nodetree (``bpy.types.NodeTree`` or an object with a `node_tree` property that is of tthis type) : object to be converted to `dict`.
             kwargs (dict) : included for compatibility but not used.
 
         Return:
@@ -189,8 +190,10 @@ class NodeTree(Base):
         if hasattr(nodetree, "node_tree"):
             nodetree = nodetree.node_tree
         # The supplied object does not use a node_tree
-        if object is None:
-            return
+        if not issubclass(type(nodetree), bpy.types.NodeTree):
+            raise ValueError(
+                'nodetree should be a bpy.types.NodeTree or an object with a "node_tree" property that is a bpy.types.NodeTree.'
+            )
         d["TYPE"] = nodetree.bl_idname
         d["CONTEXT"] = get_context(nodetree)
         d.update(
@@ -226,7 +229,7 @@ class NodeTree(Base):
             print_kwargs : passed to ``print()``.
         """
         # types
-        nodetree: Union[bpy.types.NodeTree, bpy.types.bpy_struct]
+        node_tree: Union[bpy.types.NodeTree, bpy.types.bpy_struct]
         socket_index: int
         socket_map: dict
         node_index: int
